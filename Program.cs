@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace jittimes {
@@ -10,6 +11,14 @@ namespace jittimes {
 		static bool Verbose;
 		static readonly string Name = "jit-times";
 		static readonly List<Regex> methodNameRegexes = new List<Regex> ();
+
+		enum SortKind {
+			Unsorted,
+			Self,
+			Total,
+		};
+
+		static SortKind sortKind = SortKind.Self;
 
 		static string ProcessArguments (string [] args)
 		{
@@ -28,6 +37,15 @@ namespace jittimes {
 				{ "m|method=",
 					"Process only methods whose names match {TYPE-REGEX}.",
 				  v => methodNameRegexes.Add (new Regex (v)) },
+				{ "s",
+					"Sort by self times. (this is default ordering)",
+				  v => sortKind = SortKind.Self },
+				{ "t",
+					"Sort by total times.",
+				  v => sortKind = SortKind.Total },
+				{ "u",
+					"Show unsorted results.",
+				  v => sortKind = SortKind.Unsorted },
 				{ "v|verbose",
 				  "Output information about progress during the run of the tool",
 				  v => Verbose = true },
@@ -135,8 +153,21 @@ namespace jittimes {
 			ColorWriteLine ("Total (ms) |  Self (ms) | Method", ConsoleColor.Yellow);
 
 			Timestamp sum = new Timestamp ();
+			IEnumerable<KeyValuePair<string, Timestamp>> enumerable = null;
 
-			foreach (var pair in totalTimes) {
+			switch (sortKind) {
+			case SortKind.Unsorted:
+				enumerable = totalTimes;
+				break;
+			case SortKind.Self:
+				enumerable = selfTimes.OrderByDescending (p => p.Value);
+				break;
+			case SortKind.Total:
+				enumerable = totalTimes.OrderByDescending (p => p.Value);
+				break;
+			}
+
+			foreach (var pair in enumerable) {
 				if (methodNameRegexes.Count > 0) {
 					var success = false;
 					foreach (var filter in methodNameRegexes) {
@@ -149,7 +180,10 @@ namespace jittimes {
 				}
 
 				var self = selfTimes [pair.Key];
-				Console.WriteLine ($"{pair.Value.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
+				var total = totalTimes [pair.Key];
+
+				Console.WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
+
 				sum += self;
 			}
 

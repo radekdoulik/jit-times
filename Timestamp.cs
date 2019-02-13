@@ -2,7 +2,7 @@
 using System.Text.RegularExpressions;
 
 namespace jittimes {
-	public struct Timestamp {
+	public struct Timestamp : IComparable {
 		public Int64 seconds;
 		public int milliseconds;
 		public int nanoseconds;
@@ -82,6 +82,32 @@ namespace jittimes {
 		public double Milliseconds ()
 		{
 			return seconds*1000.0 + (double)milliseconds + nanoseconds/1000000.0;
+		}
+
+		public int CompareTo (object o)
+		{
+			if (!(o is Timestamp other))
+				throw new ArgumentException ("Object is not a Timestamp");
+
+			if (seconds > other.seconds)
+				return 1;
+
+			if (seconds < other.seconds)
+				return -1;
+
+			if (milliseconds > other.milliseconds)
+				return 1;
+
+			if (milliseconds < other.milliseconds)
+				return -1;
+
+			if (nanoseconds > other.nanoseconds)
+				return 1;
+
+			if (nanoseconds < other.nanoseconds)
+				return -1;
+
+			return 0;
 		}
 	}
 }
