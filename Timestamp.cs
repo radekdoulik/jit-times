@@ -81,7 +81,7 @@ namespace jittimes {
 
 		public double Milliseconds ()
 		{
-			return seconds*1000.0 + (double)milliseconds + nanoseconds/1000000.0;
+			return seconds * 1000.0 + (double)milliseconds + nanoseconds / 1000000.0;
 		}
 
 		public int CompareTo (object o)

@@ -76,11 +76,11 @@ namespace jittimes {
 				method = null;
 				return false;
 			}
-			
+
 			method = match.Groups [1].Value;
 			if (dict.ContainsKey (method)) {
 				if (Verbose)
-					WriteLine($"Warning: method {method} already measured, dropping the second JIT time");
+					WriteLine ($"Warning: method {method} already measured, dropping the second JIT time");
 				return true;
 			}
 
@@ -120,7 +120,7 @@ namespace jittimes {
 						totalTimes [method] = doneTimes [method] - begin;
 					else {
 						if (Verbose)
-							WriteLine($"Warning: missing JIT begin for method {method}");
+							WriteLine ($"Warning: missing JIT begin for method {method}");
 						continue;
 					}
 
@@ -182,7 +182,7 @@ namespace jittimes {
 
 				var self = selfTimes [pair.Key];
 				var total = totalTimes [pair.Key];
-				WriteLine($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
+				WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
 
 				sum += self;
 			}
@@ -200,7 +200,7 @@ namespace jittimes {
 				writer.WriteLine (message);
 			else
 				writer.Write (message);
-			ResetColor();
+			ResetColor ();
 		}
 
 		public static void ColorWriteLine (string message, ConsoleColor color) => ColorMessage (message, color, Out);
