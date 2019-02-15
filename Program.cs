@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using static System.Console;
 
 namespace jittimes {
 	class MainClass {
@@ -54,7 +55,7 @@ namespace jittimes {
 			var remaining = options.Parse (args);
 
 			if (help || args.Length < 1) {
-				options.WriteOptionDescriptions (Console.Out);
+				options.WriteOptionDescriptions (Out);
 
 				Environment.Exit (0);
 			}
@@ -79,7 +80,7 @@ namespace jittimes {
 			method = match.Groups [1].Value;
 			if (dict.ContainsKey (method)) {
 				if (Verbose)
-					Console.WriteLine ($"Warning: method {method} already measured, dropping the second JIT time");
+					WriteLine($"Warning: method {method} already measured, dropping the second JIT time");
 				return true;
 			}
 
@@ -119,7 +120,7 @@ namespace jittimes {
 						totalTimes [method] = doneTimes [method] - begin;
 					else {
 						if (Verbose)
-							Console.WriteLine ($"Warning: missing JIT begin for method {method}");
+							WriteLine($"Warning: missing JIT begin for method {method}");
 						continue;
 					}
 
@@ -181,8 +182,7 @@ namespace jittimes {
 
 				var self = selfTimes [pair.Key];
 				var total = totalTimes [pair.Key];
-
-				Console.WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
+				WriteLine($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
 
 				sum += self;
 			}
@@ -194,19 +194,18 @@ namespace jittimes {
 
 		static void ColorMessage (string message, ConsoleColor color, TextWriter writer, bool writeLine = true)
 		{
-			Console.ForegroundColor = color;
+			ForegroundColor = color;
 
 			if (writeLine)
 				writer.WriteLine (message);
 			else
 				writer.Write (message);
-
-			Console.ResetColor ();
+			ResetColor();
 		}
 
-		public static void ColorWriteLine (string message, ConsoleColor color) => ColorMessage (message, color, Console.Out);
+		public static void ColorWriteLine (string message, ConsoleColor color) => ColorMessage (message, color, Out);
 
-		public static void ColorWrite (string message, ConsoleColor color) => ColorMessage (message, color, Console.Out, false);
+		public static void ColorWrite (string message, ConsoleColor color) => ColorMessage (message, color, Out, false);
 
 		public static void Error (string message) => ColorMessage ($"Error: {Name}: {message}", ConsoleColor.Red, Console.Error);
 
