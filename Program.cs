@@ -94,8 +94,8 @@ namespace jittimes {
 			var path = ProcessArguments (args);
 			var file = File.OpenText (path);
 
-			var beginRegex = new Regex ("^JIT method begin: (.*) elapsed: (.*)$");
-			var doneRegex = new Regex ("^JIT method  done: (.*) elapsed: (.*)$");
+			var beginRegex = new Regex (@"^JIT method +begin: (.*) elapsed: (.*)$");
+			var doneRegex = new Regex (@"^JIT method +done: (.*) elapsed: (.*)$");
 
 			string line;
 			int lineNumber = 0;
