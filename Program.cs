@@ -89,6 +89,60 @@ namespace jittimes {
 			return true;
 		}
 
+		static readonly Dictionary<string, Timestamp> totalTimes = new Dictionary<string, Timestamp> ();
+		static readonly Dictionary<string, List<string>> innerMethods = new Dictionary<string, List<string>> ();
+		static readonly Dictionary<string, Timestamp> selfTimes = new Dictionary<string, Timestamp> ();
+
+		static bool CalcSelfTime (string method, out Timestamp self)
+		{
+			self = totalTimes [method];
+			bool differ = innerMethods.TryGetValue (method, out var list);
+			if (differ) {
+				foreach (var inner in list) {
+					if (totalTimes.TryGetValue (inner, out var time))
+						self -= time;
+				}
+			}
+			selfTimes [method] = self;
+
+			return differ;
+		}
+
+		static bool ShouldPrint (string method)
+		{
+			if (methodNameRegexes.Count > 0) {
+				var success = false;
+
+				foreach (var filter in methodNameRegexes) {
+					var match = filter.Match (method);
+					success |= match.Success;
+				}
+
+				return success;
+			}
+
+			return true;
+		}
+
+		static void PrintIndented (string method, ref Timestamp sum, int level = 0)
+		{
+			if (!ShouldPrint (method))
+				return;
+
+			var total = totalTimes [method];
+			var hasInner = CalcSelfTime (method, out Timestamp self);
+
+			sum += self;
+
+			WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {"".PadRight (level * 2)}{method}");
+
+			if (!hasInner)
+					return;
+
+			foreach (var im in innerMethods [method])
+				PrintIndented (im, ref sum, level + 1);
+		}
+
 		public static int Main (string [] args)
 		{
 			var path = ProcessArguments (args);
@@ -102,10 +156,11 @@ namespace jittimes {
 
 			var beginTimes = new Dictionary<string, Timestamp> ();
 			var doneTimes = new Dictionary<string, Timestamp> ();
-			var totalTimes = new Dictionary<string, Timestamp> ();
-			var innerMethods = new Dictionary<string, List<string>> ();
 			var jitMethods = new Stack<string> ();
 			string method;
+
+			Timestamp sum = new Timestamp ();
+			ColorWriteLine ("Total (ms) |  Self (ms) | Method", ConsoleColor.Yellow);
 
 			while ((line = file.ReadLine ()) != null) {
 				lineNumber++;
@@ -134,26 +189,16 @@ namespace jittimes {
 							innerMethods [outerMethod] = list;
 						}
 						list.Add (method);
-					}
+					} else if (sortKind == SortKind.Unsorted)
+						PrintIndented (method, ref sum);
 				}
 			}
 
-			var selfTimes = new Dictionary<string, Timestamp> ();
 			foreach (var pair in totalTimes) {
 				var total = pair.Value;
-				var self = total;
-				if (innerMethods.TryGetValue (pair.Key, out var list)) {
-					foreach (var inner in list) {
-						if (totalTimes.TryGetValue (inner, out var time))
-							self -= time;
-					}
-				}
-				selfTimes [pair.Key] = self;
+				CalcSelfTime (pair.Key, out Timestamp _);
 			}
 
-			ColorWriteLine ("Total (ms) |  Self (ms) | Method", ConsoleColor.Yellow);
-
-			Timestamp sum = new Timestamp ();
 			IEnumerable<KeyValuePair<string, Timestamp>> enumerable = null;
 
 			switch (sortKind) {
@@ -169,16 +214,8 @@ namespace jittimes {
 			}
 
 			foreach (var pair in enumerable) {
-				if (methodNameRegexes.Count > 0) {
-					var success = false;
-					foreach (var filter in methodNameRegexes) {
-						var match = filter.Match (pair.Key);
-						success |= match.Success;
-					}
-
-					if (!success)
-						continue;
-				}
+				if (sortKind == SortKind.Unsorted || !ShouldPrint (pair.Key))
+					continue;
 
 				var self = selfTimes [pair.Key];
 				var total = totalTimes [pair.Key];
