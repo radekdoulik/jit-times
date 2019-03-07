@@ -191,7 +191,18 @@ namespace jittimes {
 				}
 			}
 
+			if (sortKind != SortKind.Unsorted)
+				sum = PrintSortedMethods ();
+
+			ColorWriteLine ($"Sum of self time (ms): {sum.Milliseconds ():F2}", ConsoleColor.Yellow);
+
+			return 0;
+		}
+
+		static Timestamp PrintSortedMethods ()
+		{
 			IOrderedEnumerable<KeyValuePair<string, MethodInfo>> enumerable = null;
+			Timestamp sum = new Timestamp ();
 
 			switch (sortKind) {
 			case SortKind.Self:
@@ -200,22 +211,21 @@ namespace jittimes {
 			case SortKind.Total:
 				enumerable = methods.OrderByDescending (p => p.Value.total);
 				break;
+			default:
+				throw new InvalidOperationException ("unknown sort order");
 			}
 
-			if (enumerable != null)
-				foreach (var pair in enumerable) {
-					if (sortKind == SortKind.Unsorted || !ShouldPrint (pair.Key))
-						continue;
+			foreach (var pair in enumerable) {
+				if (!ShouldPrint (pair.Key))
+					continue;
 
-					var info = pair.Value;
-					WriteLine ($"{info.total.Milliseconds (),10:F2} | {info.self.Milliseconds (),10:F2} | {info.method}");
+				var info = pair.Value;
+				WriteLine ($"{info.total.Milliseconds (),10:F2} | {info.self.Milliseconds (),10:F2} | {info.method}");
 
-					sum += info.self;
-				}
+				sum += info.self;
+			}
 
-			ColorWriteLine ($"Sum of self time (ms): {sum.Milliseconds ():F2}", ConsoleColor.Yellow);
-
-			return 0;
+			return sum;
 		}
 
 		static void ColorMessage (string message, ConsoleColor color, TextWriter writer, bool writeLine = true)
