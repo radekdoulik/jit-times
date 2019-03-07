@@ -7,7 +7,7 @@ namespace jittimes {
 		public int milliseconds;
 		public int nanoseconds;
 
-		static Regex regex = new Regex ("^([0-9]+)s:([0-9]+)::([0-9]+)$");
+		static readonly Regex regex = new Regex ("^([0-9]+)s:([0-9]+)::([0-9]+)$");
 
 		public static Timestamp Parse (string time)
 		{
@@ -59,14 +59,14 @@ namespace jittimes {
 
 			if (result.nanoseconds > 1000000) {
 				result.milliseconds += result.nanoseconds / 1000000;
-				result.nanoseconds = result.nanoseconds % 1000000;
+				result.nanoseconds %= 1000000;
 			}
 
 			result.milliseconds += ts1.milliseconds + ts2.milliseconds;
 
 			if (result.milliseconds > 1000) {
 				result.seconds += result.milliseconds / 1000;
-				result.milliseconds = result.milliseconds % 1000;
+				result.milliseconds %= 1000;
 			}
 
 			return result;
