@@ -38,6 +38,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Timestamp.cs" />
+    <Compile Include="MethodInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -68,45 +68,23 @@ namespace jittimes {
 			return remaining [0];
 		}
 
-		static bool TryAddTimeStamp (Dictionary<string, Timestamp> dict, Regex regex, string line, out string method)
+		static bool TryMatchTimeStamp (Regex regex, string line, out string method, out Timestamp time)
 		{
 			var match = regex.Match (line);
 
 			if (!match.Success || match.Groups.Count <= 2) {
 				method = null;
+				time = new Timestamp ();
 				return false;
 			}
 
 			method = match.Groups [1].Value;
-			if (dict.ContainsKey (method)) {
-				if (Verbose)
-					WriteLine ($"Warning: method {method} already measured, dropping the second JIT time");
-				return true;
-			}
-
-			dict [method] = Timestamp.Parse (match.Groups [2].Value);
+			time = Timestamp.Parse (match.Groups [2].Value);
 
 			return true;
 		}
 
-		static readonly Dictionary<string, Timestamp> totalTimes = new Dictionary<string, Timestamp> ();
-		static readonly Dictionary<string, List<string>> innerMethods = new Dictionary<string, List<string>> ();
-		static readonly Dictionary<string, Timestamp> selfTimes = new Dictionary<string, Timestamp> ();
-
-		static bool CalcSelfTime (string method, out Timestamp self)
-		{
-			self = totalTimes [method];
-			bool differ = innerMethods.TryGetValue (method, out var list);
-			if (differ) {
-				foreach (var inner in list) {
-					if (totalTimes.TryGetValue (inner, out var time))
-						self -= time;
-				}
-			}
-			selfTimes [method] = self;
-
-			return differ;
-		}
+		static readonly Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo> ();
 
 		static bool ShouldPrint (string method)
 		{
@@ -124,23 +102,33 @@ namespace jittimes {
 			return true;
 		}
 
-		static void PrintIndented (string method, ref Timestamp sum, int level = 0)
+		static void PrintIndented (MethodInfo info, ref Timestamp sum, int level = 0)
 		{
-			if (!ShouldPrint (method))
+			if (!ShouldPrint (info.method))
 				return;
 
-			var total = totalTimes [method];
-			var hasInner = CalcSelfTime (method, out Timestamp self);
+			sum += info.self;
 
-			sum += self;
+			WriteLine ($"{info.total.Milliseconds (),10:F2} | {info.self.Milliseconds (),10:F2} | {"".PadRight (level * 2)}{info.method}");
 
-			WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {"".PadRight (level * 2)}{method}");
-
-			if (!hasInner)
+			if (info.inner == null)
 					return;
 
-			foreach (var im in innerMethods [method])
+			foreach (var im in info.inner)
 				PrintIndented (im, ref sum, level + 1);
+		}
+
+		static MethodInfo GetMethodInfo (string method)
+		{
+			MethodInfo info;
+
+			if (methods.TryGetValue (method, out info))
+				return info;
+
+			info = new MethodInfo { method = method };
+			methods [method] = info;
+
+			return info;
 		}
 
 		public static int Main (string [] args)
@@ -154,75 +142,76 @@ namespace jittimes {
 			string line;
 			int lineNumber = 0;
 
-			var beginTimes = new Dictionary<string, Timestamp> ();
-			var doneTimes = new Dictionary<string, Timestamp> ();
-			var jitMethods = new Stack<string> ();
+			var jitMethods = new Stack<MethodInfo> ();
 			string method;
-
+			Timestamp time;
 			Timestamp sum = new Timestamp ();
 			ColorWriteLine ("Total (ms) |  Self (ms) | Method", ConsoleColor.Yellow);
 
 			while ((line = file.ReadLine ()) != null) {
 				lineNumber++;
 
-				if (TryAddTimeStamp (beginTimes, beginRegex, line, out method)) {
-					jitMethods.Push (method);
+				if (TryMatchTimeStamp (beginRegex, line, out method, out time)) {
+					var info = GetMethodInfo (method);
+
+					if (info.state != MethodInfo.State.None && Verbose)
+						Warning ($"duplicit begin of `{info.method}`");
+
+					info.state = MethodInfo.State.Begin;
+					info.begin = time;
+
+					jitMethods.Push (info);
+
 					continue;
 				}
 
-				if (TryAddTimeStamp (doneTimes, doneRegex, line, out method)) {
-					if (beginTimes.TryGetValue (method, out var begin))
-						totalTimes [method] = doneTimes [method] - begin;
-					else {
+				if (TryMatchTimeStamp (doneRegex, line, out method, out time)) {
+					var info = GetMethodInfo (method);
+
+					if (info.state != MethodInfo.State.Begin) {
 						if (Verbose)
-							WriteLine ($"Warning: missing JIT begin for method {method}");
+							Warning ($"missing JIT begin for method {method}");
 						continue;
 					}
+
+					info.state = MethodInfo.State.Done;
+					info.done = time;
+					info.total = info.done - info.begin;
+
+					info.CalcSelfTime ();
 
 					jitMethods.Pop ();
 
 					if (jitMethods.Count > 0) {
 						var outerMethod = jitMethods.Peek ();
-						List<string> list;
-						if (!innerMethods.TryGetValue (outerMethod, out list)) {
-							list = new List<string> ();
-							innerMethods [outerMethod] = list;
-						}
-						list.Add (method);
+
+						outerMethod.AddInner (info);
 					} else if (sortKind == SortKind.Unsorted)
-						PrintIndented (method, ref sum);
+						PrintIndented (info, ref sum);
 				}
 			}
 
-			foreach (var pair in totalTimes) {
-				var total = pair.Value;
-				CalcSelfTime (pair.Key, out Timestamp _);
-			}
-
-			IEnumerable<KeyValuePair<string, Timestamp>> enumerable = null;
+			IOrderedEnumerable<KeyValuePair<string, MethodInfo>> enumerable = null;
 
 			switch (sortKind) {
-			case SortKind.Unsorted:
-				enumerable = totalTimes;
-				break;
 			case SortKind.Self:
-				enumerable = selfTimes.OrderByDescending (p => p.Value);
+				enumerable = methods.OrderByDescending (p => p.Value.self);
 				break;
 			case SortKind.Total:
-				enumerable = totalTimes.OrderByDescending (p => p.Value);
+				enumerable = methods.OrderByDescending (p => p.Value.total);
 				break;
 			}
 
-			foreach (var pair in enumerable) {
-				if (sortKind == SortKind.Unsorted || !ShouldPrint (pair.Key))
-					continue;
+			if (enumerable != null)
+				foreach (var pair in enumerable) {
+					if (sortKind == SortKind.Unsorted || !ShouldPrint (pair.Key))
+						continue;
 
-				var self = selfTimes [pair.Key];
-				var total = totalTimes [pair.Key];
-				WriteLine ($"{total.Milliseconds (),10:F2} | {self.Milliseconds (),10:F2} | {pair.Key}");
+					var info = pair.Value;
+					WriteLine ($"{info.total.Milliseconds (),10:F2} | {info.self.Milliseconds (),10:F2} | {info.method}");
 
-				sum += self;
-			}
+					sum += info.self;
+				}
 
 			ColorWriteLine ($"Sum of self time (ms): {sum.Milliseconds ():F2}", ConsoleColor.Yellow);
 
