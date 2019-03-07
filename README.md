@@ -36,18 +36,19 @@ The `methods.txt` file can be aquired from Xamarin.Android application like this
 
 	`mono jit-times.exe -m ^System.Reflection.Emit methods.txt`
 
-
-    Total (ms) |  Self (ms) | Method
-          8.35 |       8.35 | System.Reflection.Emit.OpCodes:.cctor ()
-          0.57 |       0.57 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.Emit.LocalBuilder)
-          0.49 |       0.49 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.MethodInfo)
-          0.39 |       0.39 | System.Reflection.Emit.DynamicMethod:.ctor (string,System.Reflection.MethodAttributes,System.Reflection.CallingConventions,System.Type,System.Type[],System.Type,System.Reflection.Module,bool,bool)
-          0.36 |       0.36 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.Emit.Label)
-          0.36 |       0.36 | System.Reflection.Emit.ILGenerator:DeclareLocal (System.Type,bool)
-          0.35 |       0.35 | System.Reflection.Emit.ILGenerator:BeginExceptionBlock ()
-          0.34 |       0.34 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Type)
-          0.31 |       0.31 | System.Reflection.Emit.DynamicMethod:CreateDynMethod ()
-          0.29 |       0.29 | System.Reflection.Emit.ILGenerator:DefineLabel ()
-          0.27 |       0.27 | System.Reflection.Emit.ILGenerator:BeginCatchBlock (System.Type)
-          ...
-    Sum of self time (ms): 16.02
+```
+Total (ms) |  Self (ms) | Method
+      8.35 |       8.35 | System.Reflection.Emit.OpCodes:.cctor ()
+      0.57 |       0.57 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.Emit.LocalBuilder)
+      0.49 |       0.49 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.MethodInfo)
+      0.39 |       0.39 | System.Reflection.Emit.DynamicMethod:.ctor (string,System.Reflection.MethodAttributes,System.Reflection.CallingConventions,System.Type,System.Type[],System.Type,System.Reflection.Module,bool,bool)
+      0.36 |       0.36 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Reflection.Emit.Label)
+      0.36 |       0.36 | System.Reflection.Emit.ILGenerator:DeclareLocal (System.Type,bool)
+      0.35 |       0.35 | System.Reflection.Emit.ILGenerator:BeginExceptionBlock ()
+      0.34 |       0.34 | System.Reflection.Emit.ILGenerator:Emit (System.Reflection.Emit.OpCode,System.Type)
+      0.31 |       0.31 | System.Reflection.Emit.DynamicMethod:CreateDynMethod ()
+      0.29 |       0.29 | System.Reflection.Emit.ILGenerator:DefineLabel ()
+      0.27 |       0.27 | System.Reflection.Emit.ILGenerator:BeginCatchBlock (System.Type)
+      ...
+Sum of self time (ms): 16.02
+```
